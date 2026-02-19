@@ -1,0 +1,731 @@
+# Copyright 2026 naadir jeewa
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[config]
+default_to_workspace = false
+
+[env]
+BENCH    = "hit_leiden_suite"
+BENCH_FN = "hit_leiden_run_throughput"
+CA_HEPTH = "data/ca-HepTh/ca-HepTh"
+UK_2007  = "data/uk-2007-05@100000/uk-2007-05@100000"
+
+# ── Data ─────────────────────────────────────────────────────────────────────
+
+[tasks.data]
+description = "Download the uk-2007-05@100000 benchmark dataset (used by profile_run/profile_incremental binaries)"
+script = [
+  "bash scripts/download_uk_2007.sh",
+]
+
+[tasks.data-ca-hepth]
+description = "Download the ca-HepTh dataset from SNAP (used by hit-leiden benchmark)"
+script = [
+  "bash scripts/download_ca_hepth.sh",
+]
+
+# ── Build ────────────────────────────────────────────────────────────────────
+
+[tasks.bench-build]
+# Uses the bench profile (debug = true) so profilers can resolve symbols.
+# cargo build --release would use the release profile and strip symbols.
+description = "Build the benchmark binary using the bench profile (debug symbols intact)"
+command = "cargo"
+args = [
+  "bench",
+  "--no-run",
+  "--bench",
+  "${BENCH}",
+]
+
+[tasks.build-profiling]
+description = "Build the hit-leiden binary with profiling feature (release)"
+command = "cargo"
+args = [
+  "build",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+]
+
+# ── Criterion Bench ──────────────────────────────────────────────────────────
+
+[tasks.bench]
+description = "Run Criterion benchmarks (release, no profiling)"
+command = "cargo"
+args = [
+  "bench",
+  "--bench",
+  "${BENCH}",
+]
+
+# ── Profiling (new CLI) ─────────────────────────────────────────────────────
+
+[tasks.perf-allow]
+description = "Lower perf_event_paranoid to 1 (required for perf profiling)"
+script = [
+  "echo 1 | sudo tee /proc/sys/kernel/perf_event_paranoid",
+]
+
+[tasks.profile-perf]
+description = "Profile profile_run binary with perf (produces perf.data + profile.pb.gz + hotspots.toon)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "perf",
+  "--duration",
+  "10",
+]
+
+[tasks.profile-samply]
+description = "Profile profile_run binary with samply (produces profile.json.gz + hotspots.toon)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "samply",
+  "--duration",
+  "10",
+]
+
+[tasks.profile-incremental-perf]
+description = "Profile profile_incremental binary with perf"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-incremental",
+  "--profiler",
+  "perf",
+  "--duration",
+  "10",
+]
+
+[tasks.profile-incremental-samply]
+description = "Profile profile_incremental binary with samply"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-incremental",
+  "--profiler",
+  "samply",
+  "--duration",
+  "10",
+]
+
+# ── Extended Profiling (longer captures for better sample quality) ────────
+
+[tasks.profile-perf-long]
+description = "Profile profile_run with perf for 60s (more samples, better accuracy)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "perf",
+  "--duration",
+  "60",
+]
+
+[tasks.profile-samply-long]
+description = "Profile profile_run with samply for 60s (more samples, better accuracy)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "samply",
+  "--duration",
+  "60",
+]
+
+[tasks.profile-incremental-perf-long]
+description = "Profile profile_incremental with perf for 60s"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-incremental",
+  "--profiler",
+  "perf",
+  "--duration",
+  "60",
+]
+
+[tasks.profile-incremental-samply-long]
+description = "Profile profile_incremental with samply for 60s"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-incremental",
+  "--profiler",
+  "samply",
+  "--duration",
+  "60",
+]
+
+# ── Throughput Mode Profiling ─────────────────────────────────────────────────
+
+[tasks.profile-throughput-perf]
+description = "Profile profile_run binary in throughput mode with perf"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "perf",
+  "--duration",
+  "10",
+]
+
+[tasks.profile-throughput-samply]
+description = "Profile profile_run binary in throughput mode with samply"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "samply",
+  "--duration",
+  "10",
+]
+
+[tasks.profile-throughput-perf-long]
+description = "Profile profile_run in throughput mode with perf for 60s"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "perf",
+  "--duration",
+  "60",
+]
+
+[tasks.profile-throughput-samply-long]
+description = "Profile profile_run in throughput mode with samply for 60s"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "profile",
+  "--binary",
+  "profile-run",
+  "--profiler",
+  "samply",
+  "--duration",
+  "60",
+]
+
+# ── Profile Session Management ───────────────────────────────────────────────
+
+[tasks.profile-list]
+description = "List available profile sessions with timestamps and sizes"
+script = [
+  """
+    echo "Available profile sessions:"
+    echo "─────────────────────────────────────────────────────────────"
+    if [ -d artifacts/profiling ]; then
+      for dir in artifacts/profiling/profile_*/; do
+        [ -d "$dir" ] || continue
+        name=$(basename "$dir")
+        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+        files=$(ls "$dir" 2>/dev/null | tr '\n' ', ' | sed 's/,$//')
+        printf "  %-50s  %6s  [%s]\n" "$name" "$size" "$files"
+      done
+    else
+      echo "  (no profile sessions found — run profile-perf or profile-samply first)"
+    fi
+  """,
+]
+
+[tasks.profile-latest-export]
+description = "Export the most recent profile session as TOON text"
+dependencies = [
+  "build-profiling",
+]
+script = [
+  """
+    latest=$(ls -dt artifacts/profiling/profile_*/ 2>/dev/null | head -1)
+    if [ -z "$latest" ]; then
+      echo "No profile sessions found. Run profile-perf or profile-samply first."
+      exit 1
+    fi
+
+    # Prefer .pb.gz (perf), fall back to .json.gz (samply)
+    input=$(ls "$latest"profile.pb.gz 2>/dev/null || ls "$latest"profile.json.gz 2>/dev/null || true)
+    if [ -z "$input" ]; then
+      echo "No exportable profile found in $latest"
+      echo "Expected profile.pb.gz or profile.json.gz"
+      exit 1
+    fi
+
+    echo "Exporting: $input"
+    cargo run --release --features profiling --bin hit-leiden -- profile export --input "$input"
+  """,
+]
+
+# ── TOON Export ──────────────────────────────────────────────────────────────
+
+# Usage: cargo make profile-export PROFILE_INPUT=artifacts/profiling/profile_run_<timestamp>/profile.pb.gz
+[tasks.profile-export]
+description = "Export profiling data as TOON text (set PROFILE_INPUT env var)"
+dependencies = [
+  "build-profiling",
+]
+script = [
+  """
+    if [ -z "${PROFILE_INPUT:-}" ]; then
+      echo "Usage: cargo make profile-export PROFILE_INPUT=<path to .pb.gz or .json.gz>"
+      echo ""
+      echo "Available profile sessions:"
+      ls -d artifacts/profiling/profile_*/ 2>/dev/null || echo "  (none found — run profile-perf or profile-samply first)"
+      exit 1
+    fi
+    cargo run --release --features profiling --bin hit-leiden -- profile export --input "$PROFILE_INPUT"
+  """,
+]
+
+# Usage: cargo make profile-compare PROFILE_BASELINE=<path> PROFILE_CANDIDATE=<path>
+[tasks.profile-compare]
+description = "Compare two profiling runs as TOON diff (set PROFILE_BASELINE and PROFILE_CANDIDATE env vars)"
+dependencies = [
+  "build-profiling",
+]
+script = [
+  """
+    if [ -z "${PROFILE_BASELINE:-}" ] || [ -z "${PROFILE_CANDIDATE:-}" ]; then
+      echo "Usage: cargo make profile-compare PROFILE_BASELINE=<path> PROFILE_CANDIDATE=<path>"
+      echo ""
+      echo "Available profile sessions:"
+      ls -d artifacts/profiling/profile_*/ 2>/dev/null || echo "  (none found — run profile-perf or profile-samply first)"
+      exit 1
+    fi
+    cargo run --release --features profiling --bin hit-leiden -- profile compare \
+      --baseline "$PROFILE_BASELINE" --candidate "$PROFILE_CANDIDATE"
+  """,
+]
+
+# ── Throughput vs Deterministic Comparison ─────────────────────────────────────
+
+[tasks.benchmark-compare-modes-uk]
+description = "Compare deterministic vs throughput on uk-2007-05@100000 (deterministic = baseline)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+script = [
+  """
+    set -e
+    DET_DIR="artifacts/benchmark/deterministic"
+    THR_DIR="artifacts/benchmark/throughput"
+    mkdir -p "$DET_DIR" "$THR_DIR"
+
+    echo "=== Running deterministic mode (baseline) ==="
+    cargo run --release --features profiling --bin hit-leiden -- \
+      benchmark --source file --path "${UK_2007}" \
+      --mode deterministic --no-igraph \
+      --output-dir "$DET_DIR" --format json
+
+    echo ""
+    echo "=== Running throughput mode (candidate) ==="
+    cargo run --release --features profiling --bin hit-leiden -- \
+      benchmark --source file --path "${UK_2007}" \
+      --mode throughput --no-igraph \
+      --output-dir "$THR_DIR" --format json
+
+    echo ""
+    DET_JSON=$(ls -t "$DET_DIR"/benchmark_*.json 2>/dev/null | head -1)
+    THR_JSON=$(ls -t "$THR_DIR"/benchmark_*.json 2>/dev/null | head -1)
+
+    if [ -n "$DET_JSON" ] && [ -n "$THR_JSON" ]; then
+      echo "=== Throughput vs Deterministic (baseline) ==="
+      python3 - "$DET_JSON" "$THR_JSON" <<'PYEOF'
+import json, sys
+with open(sys.argv[1]) as f: det = json.load(f)
+with open(sys.argv[2]) as f: thr = json.load(f)
+hdr = "%-6s %-12s %-12s %-10s %-10s %-10s %-10s" % ("Batch", "Det(ms)", "Thr(ms)", "Speedup", "Det Q", "Thr Q", "DQ")
+print(hdr)
+print("-" * 70)
+det_total, thr_total = 0.0, 0.0
+for d, t in zip(det["batches"], thr["batches"]):
+    det_total += d["hit_leiden_time_ms"]
+    thr_total += t["hit_leiden_time_ms"]
+    spd = d["hit_leiden_time_ms"] / t["hit_leiden_time_ms"] if t["hit_leiden_time_ms"] > 0 else 0
+    dq = t["modularity"] - d["modularity"]
+    print("%-6d %-12.2f %-12.2f %-10.2fx %-10.4f %-10.4f %+-10.5f" % (
+        d["batch_idx"]+1, d["hit_leiden_time_ms"], t["hit_leiden_time_ms"],
+        spd, d["modularity"], t["modularity"], dq))
+cum_spd = det_total / thr_total if thr_total > 0 else 0
+print("=" * 70)
+print("Cumulative: det %.2fms  thr %.2fms  speedup %.2fx" % (det_total, thr_total, cum_spd))
+PYEOF
+    fi
+  """,
+]
+
+[tasks.benchmark-compare-modes-ca-hepth]
+description = "Compare deterministic vs throughput on ca-HepTh (deterministic = baseline)"
+dependencies = [
+  "data-ca-hepth",
+  "build-profiling",
+]
+script = [
+  """
+    set -e
+    DET_DIR="artifacts/benchmark/deterministic"
+    THR_DIR="artifacts/benchmark/throughput"
+    mkdir -p "$DET_DIR" "$THR_DIR"
+
+    echo "=== Running deterministic mode (baseline) ==="
+    cargo run --release --features profiling --bin hit-leiden -- \
+      benchmark --source file --path "${CA_HEPTH}" \
+      --mode deterministic --no-igraph \
+      --output-dir "$DET_DIR" --format json
+
+    echo ""
+    echo "=== Running throughput mode (candidate) ==="
+    cargo run --release --features profiling --bin hit-leiden -- \
+      benchmark --source file --path "${CA_HEPTH}" \
+      --mode throughput --no-igraph \
+      --output-dir "$THR_DIR" --format json
+
+    echo ""
+    DET_JSON=$(ls -t "$DET_DIR"/benchmark_*.json 2>/dev/null | head -1)
+    THR_JSON=$(ls -t "$THR_DIR"/benchmark_*.json 2>/dev/null | head -1)
+
+    if [ -n "$DET_JSON" ] && [ -n "$THR_JSON" ]; then
+      echo "=== Throughput vs Deterministic (baseline) ==="
+      python3 - "$DET_JSON" "$THR_JSON" <<'PYEOF'
+import json, sys
+with open(sys.argv[1]) as f: det = json.load(f)
+with open(sys.argv[2]) as f: thr = json.load(f)
+hdr = "%-6s %-12s %-12s %-10s %-10s %-10s %-10s" % ("Batch", "Det(ms)", "Thr(ms)", "Speedup", "Det Q", "Thr Q", "DQ")
+print(hdr)
+print("-" * 70)
+det_total, thr_total = 0.0, 0.0
+for d, t in zip(det["batches"], thr["batches"]):
+    det_total += d["hit_leiden_time_ms"]
+    thr_total += t["hit_leiden_time_ms"]
+    spd = d["hit_leiden_time_ms"] / t["hit_leiden_time_ms"] if t["hit_leiden_time_ms"] > 0 else 0
+    dq = t["modularity"] - d["modularity"]
+    print("%-6d %-12.2f %-12.2f %-10.2fx %-10.4f %-10.4f %+-10.5f" % (
+        d["batch_idx"]+1, d["hit_leiden_time_ms"], t["hit_leiden_time_ms"],
+        spd, d["modularity"], t["modularity"], dq))
+cum_spd = det_total / thr_total if thr_total > 0 else 0
+print("=" * 70)
+print("Cumulative: det %.2fms  thr %.2fms  speedup %.2fx" % (det_total, thr_total, cum_spd))
+PYEOF
+    fi
+  """,
+]
+
+[tasks.benchmark-throughput-uk]
+description = "Run full benchmark on uk-2007-05@100000 in throughput mode (no igraph)"
+dependencies = [
+  "data",
+  "build-profiling",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "benchmark",
+  "--source",
+  "file",
+  "--path",
+  "${UK_2007}",
+  "--mode",
+  "throughput",
+  "--no-igraph",
+]
+
+# ── igraph Baseline ─────────────────────────────────────────────────────────
+
+[tasks.install-igraph]
+description = "Install python-igraph + leidenalg into .venv/ via uv"
+script = [
+  """
+    set -e
+    if ! command -v uv >/dev/null 2>&1; then
+      echo "Error: uv is not installed. Install it with: curl -LsSf https://astral.sh/uv/install.sh | sh"
+      exit 1
+    fi
+    uv venv .venv
+    uv pip install --python .venv/bin/python python-igraph leidenalg
+    echo "igraph + leidenalg installed in .venv/"
+  """,
+]
+
+[tasks.benchmark-igraph]
+description = "Run benchmark on ca-HepTh with igraph comparison"
+dependencies = [
+  "data-ca-hepth",
+  "build-profiling",
+  "install-igraph",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "benchmark",
+  "--source",
+  "file",
+  "--path",
+  "${CA_HEPTH}",
+]
+
+[tasks.benchmark-igraph-uk]
+description = "Run benchmark on uk-2007-05@100000 with igraph comparison"
+dependencies = [
+  "data",
+  "build-profiling",
+  "install-igraph",
+]
+command = "cargo"
+args = [
+  "run",
+  "--release",
+  "--features",
+  "profiling",
+  "--bin",
+  "hit-leiden",
+  "--",
+  "benchmark",
+  "--source",
+  "file",
+  "--path",
+  "${UK_2007}",
+]
+
+[tasks.clean-igraph-cache]
+description = "Remove cached igraph Leiden results (forces re-run on next benchmark)"
+script = [
+  "rm -f artifacts/benchmark/igraph_cache_*.json",
+  "echo 'igraph cache cleared. Next benchmark run will re-compute igraph Leiden baseline.'",
+]
+
+# ── License Headers ──────────────────────────────────────────────────────────
+
+[tasks.license-headers]
+description = "Apply SPDX + copyright headers using addlicense"
+script = [
+  '''
+    set -e
+    if ! command -v addlicense >/dev/null 2>&1; then
+      echo "Error: addlicense is not installed or not in PATH."
+      echo "Install with: go install github.com/google/addlicense@latest"
+      exit 1
+    fi
+
+    addlicense -v -y 2026 -c "Naadir Jeewa" -s \
+      -ignore "target/**" \
+      -ignore "artifacts/**" \
+      -ignore "data/**" \
+      -ignore ".git/**" \
+      -ignore "LICENSE" \
+      -ignore "LICENSE-*" \
+      .
+  ''',
+]
+
+# ── Cleanup ──────────────────────────────────────────────────────────────────
+
+[tasks.incremental-clean]
+description = "Remove incremental benchmark export artifacts"
+script = [
+  "rm -f artifacts/incremental/uk_2007_05_100000_incremental.csv artifacts/incremental/uk_2007_05_100000_incremental.json",
+]
+
+[tasks.clean-profile]
+description = "Remove generated profile artifacts"
+script = [
+  "rm -f flamegraph.svg perf.data perf.data.old profile.json",
+  "rm -rf artifacts/profiling/",
+  "rm -f artifacts/incremental/uk_2007_05_100000_incremental.csv artifacts/incremental/uk_2007_05_100000_incremental.json",
+]
+
+[tasks.clean-benchmark]
+description = "Remove benchmark output artifacts (preserves ST-Leiden and igraph caches)"
+script = [
+  '''
+    find artifacts/benchmark/ -type f ! -name 'st_cache_*.json' ! -name 'igraph_cache_*.json' -delete 2>/dev/null || true
+    find artifacts/benchmark/ -mindepth 1 -type d -empty -delete 2>/dev/null || true
+    echo "Benchmark outputs removed (ST-Leiden and igraph caches preserved)."
+  ''',
+]
+
+[tasks.clean-all]
+description = "Remove all generated artifacts"
+dependencies = [
+  "clean-profile",
+  "clean-benchmark",
+  "incremental-clean",
+]

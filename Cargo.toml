@@ -1,0 +1,165 @@
+# Copyright 2026 naadir jeewa
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name    = "hit_leiden"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+clap = { version = "4.5", features = [
+  "derive",
+] }
+ahash = "0.8"
+rayon = "1.10"
+smallvec = "1.13"
+bitvec = "1.0"
+thiserror = "2.0"
+webgraph = { version = "0.6.0", optional = true }
+lender = { version = "0.6.2", optional = true }
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+plotly = { version = "0.14", features = ["plotly_embed_js"], optional = true }
+inferno = { version = "0.12", optional = true }
+prost = { version = "0.13", optional = true }
+toon-format = { version = "0.4", default-features = false, optional = true }
+flate2 = { version = "1.0", optional = true }
+chrono = { version = "0.4", optional = true }
+
+[build-dependencies]
+prost-build = { version = "0.13", optional = true }
+
+[dev-dependencies]
+proptest  = "1.6"
+criterion = "0.6"
+webgraph  = "0.6.0"
+anyhow    = "1.0.102"
+lender    = "0.6.2"
+
+[features]
+default = [
+]
+profiling = [
+  "webgraph",
+  "lender",
+  "serde",
+  "serde_json",
+  "plotly",
+  "inferno",
+  "prost",
+  "prost-build",
+  "toon-format",
+  "flate2",
+  "chrono",
+]
+
+[[bin]]
+name = "hit-leiden"
+path = "src/main.rs"
+
+[[bin]]
+name = "profile_run"
+path = "src/bin/profile_run.rs"
+required-features = [
+  "profiling",
+]
+
+[[bin]]
+name = "profile_incremental"
+path = "src/bin/profile_incremental.rs"
+required-features = [
+  "profiling",
+]
+
+[[bench]]
+name    = "hit_leiden_suite"
+path    = "benchmarks/criterion/hit_leiden_suite.rs"
+harness = false
+
+[profile.bench]
+debug = true
+
+[profile.release]
+debug = true
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unused_qualifications = "warn"
+elided_lifetimes_in_paths = "warn"
+
+[workspace.lints.clippy]
+# Enable groups with priority so individual overrides work
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# --- Pedantic overrides (commonly too noisy) ---
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+too_long_first_doc_paragraph = "allow"
+
+# --- Cherry-picked restriction lints ---
+allow_attributes = "warn"
+allow_attributes_without_reason = "warn"
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+empty_enum_variants_with_brackets = "warn"
+expect_used = "warn"
+float_cmp_const = "warn"
+fn_to_numeric_cast_any = "warn"
+format_push_string = "warn"
+get_unwrap = "warn"
+if_then_some_else_none = "warn"
+infinite_loop = "warn"
+lossy_float_literal = "warn"
+mem_forget = "warn"
+missing_assert_message = "warn"
+missing_docs_in_private_items = "warn"  # optional, very strict
+mixed_read_write_in_expression = "warn"
+mutex_atomic = "warn"
+panic = "warn"
+print_stdout = "warn"
+print_stderr = "warn"
+rc_buffer = "warn"
+rc_mutex = "warn"
+rest_pat_in_fully_bound_structs = "warn"
+same_name_method = "warn"
+self_named_module_files = "warn"
+semicolon_inside_block = "warn"
+str_to_string = "warn"
+string_to_string = "warn"
+tests_outside_test_module = "warn"
+todo = "warn"
+try_err = "warn"
+undocumented_unsafe_blocks = "warn"
+unnecessary_safety_comment = "warn"
+unnecessary_safety_doc = "warn"
+unnecessary_self_imports = "warn"
+unneeded_field_pattern = "warn"
+unseparated_literal_suffix = "warn"
+unwrap_used = "warn"
+verbose_file_reads = "warn"
