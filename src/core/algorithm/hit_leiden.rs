@@ -56,7 +56,6 @@ pub fn run(graph: &GraphInput, config: &RunConfig) -> Result<RunOutcome, HitLeid
         &mut partition_state,
         graph,
         config.resolution,
-        config.refinement_gamma,
         config.mode,
         config.max_iterations,
     );
@@ -169,7 +168,6 @@ fn multilevel_leiden(
     state: &mut PartitionState,
     graph: &GraphInput,
     gamma: f64,
-    refinement_gamma: f64,
     mode: crate::core::config::RunMode,
     max_levels: usize,
 ) -> (usize, Vec<Vec<usize>>) {
@@ -197,12 +195,10 @@ fn multilevel_leiden(
 
     // Refinement: within each community, merge singletons into subcommunities.
     // Uses the SAME resolution as movement for the quality function.
-    // The refinement_gamma (0.05) is only for the connectivity criterion.
     let mut subcommunities = refine_singleton_merge(
         &state.supergraphs[0],
         &state.community_mapping_per_level[0],
         gamma,
-        refinement_gamma,
     );
 
     // The community assignment (for final output) comes from movement
@@ -279,7 +275,6 @@ fn multilevel_leiden(
             &state.supergraphs[0],
             &state.node_to_comm,
             gamma,
-            refinement_gamma,
         );
         let new_subcomm_count = count_unique(&subcommunities);
 
@@ -455,7 +450,6 @@ fn refine_singleton_merge(
     graph: &crate::core::graph::in_memory::InMemoryGraph,
     node_to_community: &[usize],
     gamma: f64,
-    _refinement_gamma: f64,
 ) -> Vec<usize> {
     let n = graph.node_count;
     if n == 0 {

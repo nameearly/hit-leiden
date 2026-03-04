@@ -36,7 +36,6 @@ pub fn run_from_cli(
         max_iterations: 10,
         pinned_profile: None,
         resolution: 1.0,
-        refinement_gamma: 0.05,
     };
 
     crate::run(graph, &config)

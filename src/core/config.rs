@@ -34,10 +34,6 @@ pub struct RunConfig {
     /// Default 1.0 matches the HIT-Leiden paper (standard modularity).
     /// Used for both movement and refinement quality functions.
     pub resolution: f64,
-    /// Refinement connectivity criterion gamma. Controls which nodes participate
-    /// in refinement merging (must satisfy cut_size >= gamma * v_total * (S - v_total)).
-    /// Default 0.05. NOT used for quality function.
-    pub refinement_gamma: f64,
 }
 
 impl Default for RunConfig {
@@ -50,7 +46,6 @@ impl Default for RunConfig {
             max_iterations: 10,
             pinned_profile: None,
             resolution: 1.0,
-            refinement_gamma: 0.05,
         }
     }
 }
